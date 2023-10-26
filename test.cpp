@@ -1,46 +1,100 @@
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <string>
 #include <ctime>
+
+int sum(int num) {
+    int s = 0;
+    while(num != 0) {
+        s += num % 10;
+        num /= 10;
+    }
+
+    return s;
+}
 
 int main() {
     std::cout << "enter a name of client: ";
     std::string clientName;
     std::cin >> clientName;
 
-    std::ifstream ifile(clientName + ".txt");
-    if (!ifile.is_open()) {
-        ifile.open(clientName + ".txt", std::ios::app);
+    std::ifstream ifileTXT(clientName + ".txt");
+    std::ifstream ifileBIN(clientName + ".bin", std::ios::binary | std::ios::app);
+
+    if (!ifileTXT.is_open()) {
+        ifileTXT.open(clientName + ".txt", std::ios::app);
+    }
+    else if (!ifileBIN.is_open())
+        ifileBIN.open(clientName + ".bin", std::ios::binary | std::ios::app);
+
+    if (!ifileTXT.is_open()) {
+        std::cerr << "fileTXT isn't open";
+        exit(1);
+    }
+    else if (!ifileBIN.is_open()) {
+        std::cerr << "fileBIN isn't open";
+        exit(1);
     }
 
-    if (!ifile.is_open())
-        exit(1);
+    std::ofstream ofileTXT(clientName + "Answer.txt");
+    std::ofstream ofileBIN(clientName + "Answer.bin", std::ios::binary);
+    std::ofstream requestFile(clientName + ".txt");
 
-    std::ofstream ofile(clientName + "Answer.txt");
+    if(!ofileTXT.is_open())
+        ofileTXT.open(clientName + "Answer.txt", std::ios::app);
+    else if (!ofileBIN.is_open())
+        ofileTXT.open(clientName + "Answer.bin", std::ios::binary | std::ios::app);
 
-    if(!ofile.is_open())
-    ofile.open(clientName + ".txt", std::ios::app);
+    std::string oldData;
+    std::getline(ifileTXT, oldData);
 
-    ifile.seekg(0, std::ios::end);
-    int prevSize = ifile.tellg();
-    ifile.close();
-    ofile.close();
+    ifileTXT.seekg(0, std::ios::end);
+
+    ifileTXT.close();
+    ofileTXT.close();
+
+    ifileBIN.close();
+    ofileBIN.close();
+
+    requestFile.close();
     std::cout << "server is working\n";
+    std::string request;
     while(true) {
-        ifile.open(clientName + ".txt");
-        ifile.seekg(0, std::ios::end);
-        if (prevSize != ifile.tellg()) {
-            //std::cout.clear();
+        std::cout.clear();
+        std::cin.clear();
+        std::cout << "enter your marks: ";
+        std::cin >> request;
+        request.erase(std::remove_if(request.begin(),request.end(), isspace), request.end());
+        requestFile.open(clientName + ".txt");
+        requestFile << request;
+        requestFile.close();
+        ifileTXT.open(clientName + ".txt");
+        std::string newData;
+        std::getline(ifileTXT, newData);
+        ifileTXT.seekg(0, std::ios::end);
+        if (oldData != newData) {
             std::cout << "file was changed\n";
-            prevSize = ifile.tellg();            
-            ofile.open(clientName + "Answer.txt", std::ios::app);
+            ofileTXT.open(clientName + "Answer.txt", std::ios::app);
+            ofileBIN.open(clientName + "Answer.bin", std::ios::binary | std::ios::app);
             time_t seconds = time(NULL);
             tm* timeinfo = localtime(&seconds);
-            ofile << asctime(timeinfo) << " - file was changed\n\n";
+            ofileTXT << asctime(timeinfo) << " - file was changed\n";
+            ofileBIN << asctime(timeinfo) << " - file was changed\n";
+            if (sum(std::stoi(request)) >= 16) {
+                ofileTXT << "you have a scholarship\n\n";
+                ofileBIN << "you have a scholarship\n\n";
+            }
+            else {
+                ofileTXT << "you don't have a scholarship\n\n";
+                ofileBIN << "you don't have a scholarship\n\n";
+            }
         }
 
-        ifile.close();
-        ofile.close();
+        ifileTXT.close();
+        ifileBIN.close();
+        ofileTXT.close();
+        ofileBIN.close();
     }
 
     return 0;
